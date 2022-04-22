@@ -1,5 +1,21 @@
 #!/bin/bash
 
+
+check_env() {
+  #if [[ -z $( env | grep "${1}") ]]; then
+  if ! env | grep -q "${1}" ; then
+    export -p ${1}="${2}"
+  fi
+}
+
+# [[ -n $NOCOLOR ]] && export -p TAKE_COLOR="[0m"
+#check_env "INVENTORY_COLOR" "\e[95m"
+
+check_env "TAKE_ERR_COLOR" "[91m"
+check_env "TAKE_COLOR" "[93m"
+
+BLANK="\e[0m"
+
 if [ -z "$INVDIR" ]; then
   invdir=~/.inventory
 else
@@ -7,29 +23,25 @@ else
 fi
 
 if [ ! -d "$invdir" ]; then
-	echo ""$invdir" does not exist, creating..."
+	echo "$invdir does not exist, creating..."
   mkdir "$invdir"
 fi
 
-if [ ! -e "$1" ]; then
-  echo "You can't take something that doesn't exist!"
-else
-  if [ -e "$invdir"/"$1" ]; then
-    printf "Oh no!\nThe file that you are trying to take already exists in your inventory. Please rename it.\n"
+while [ $# -ne 0 ]; do
+  cur=${1}
+  if [ ! -e "$cur" ]; then
+    echo "You can't take something that doesn't exist!"
   else
-    mv ./"$1" "$invdir"
-    echo "You took "$1"."
+    if [ -e "$invdir"/"$cur" ]; then
+      printf "Oh no!\nThe file \e%s%s\e[0m that you are trying to take already exists in your inventory. Please rename it.\n" "${TAKE_ERR_COLOR}" "$cur "
+    else
+      mv -i ./"$cur" "$invdir"
+      printf "You took \e%s%s\e[0m\n" "${TAKE_COLOR}" "$cur"
+    fi
   fi
-fi
+	shift
+done
 
-files=(""$invdir"/*")
-filesnum=$(ls -l "$invdir" | grep -v ^t | wc -l)
+inventory
 
-if [ "$filesnum" -eq 0 ]; then
-  echo "Your inventory is empty."
-else
-  echo "Your inventory now contains:"
-  for i in ${files[@]}; do
-    echo "${i##*/}"
-  done
-fi
+# vim: ts=2 sw=2 expandtab

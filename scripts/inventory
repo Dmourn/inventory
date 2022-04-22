@@ -1,5 +1,16 @@
 #!/bin/bash
 
+check_env() {
+  #if [[ -z $( env | grep "${1}") ]]; then
+  if ! env | grep -q "${1}" ; then
+    export -p ${1}="${2}"
+  fi
+}
+
+# 256 colors with this convention
+# [38;5;10m == [91m
+check_env INVENTORY_COLOR '\e[38;5;10m'
+
 if [ -z "$INVDIR" ]; then
   invdir=~/.inventory
 else
@@ -7,18 +18,22 @@ else
 fi
 
 if [ ! -d "$invdir" ]; then
-	echo ""$invdir" does not exist, creating..."
+	echo "$invdir does not exist, creating..."
   mkdir "$invdir"
 fi
 
-files=(""$invdir"/*")
-filesnum=$(ls -l "$invdir" | grep -v ^t | wc -l)
+# files=(${invdir}/{*,.*})
+# files=(""$invdir"/*")
+files=$(find "$invdir" -type f )
+filesnum=$(find "$invdir" -type f | wc -l )
 
 if [ "$filesnum" -eq 0 ]; then
   echo "Your inventory is empty."
 else
   echo "Your inventory contains:"
   for i in ${files[@]}; do
-    echo "${i##*/}"
+    echo -e "${INVENTORY_COLOR}${i##*/}\e[0m"
   done
 fi
+
+# vim: ts=2 sw=2 expandtab

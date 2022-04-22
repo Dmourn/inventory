@@ -1,5 +1,16 @@
 #!/bin/bash
 
+check_env() {
+  #if [[ -z $( env | grep "${1}") ]]; then
+  if ! env | grep -q "${1}" ; then
+    export -p ${1}="${2}"
+  fi
+}
+
+check_env "DROP_COLOR" "\e[93m"
+
+BLANK="\e[0m"
+
 if [ -z "$INVDIR" ]; then
   invdir=~/.inventory
 else
@@ -7,29 +18,43 @@ else
 fi
 
 if [ ! -d "$invdir" ]; then
-	echo ""$invdir" does not exist, creating..."
+	echo "$invdir does not exist, creating..."
   mkdir "$invdir"
 fi
 
-if [ ! -e "$invdir"/"$1" ]; then
-  echo "You can't drop something that doesn't exist!"
-else
-  if [ -e ./"$1" ]; then
-    printf "Oh no!\nThe file that you are trying to drop already exists. Please rename it or drop it somewhere else.\n"
-  else
-    mv "$invdir"/"$1" ./
-    echo "You dropped "$1"."
-  fi
-fi
+#This works for taking multiple files but globbing fails 
+# Putting in a function and passing file* as arg might make globbing work
+check_inv(){
 
-files=(""$invdir"/*")
-filesnum=$(ls -l "$invdir" | grep -v ^t | wc -l)
-
-if [ "$filesnum" -eq 0 ]; then
-  echo "Your inventory is empty."
-else
-  echo "Your inventory now contains:"
-  for i in ${files[@]}; do
-    echo "${i##*/}"
+  while [ $# -ne 0 ]; do
+    cur=${1}
+    # this changes with the find logic
+    # if [ ! -e "$invdir"/"$cur" ]; then
+    if [ ! -e "$invdir/$cur" ]; then
+      echo "You can't drop something that doesn't exist!"
+    else
+      if [ -e "./${cur##*/}" ]; then
+        printf "Oh no!\nThe file %s that you are trying to drop already exists. Please rename it or drop it somewhere else.\n" "$cur"
+      else
+        # this changes with the find logic
+        # echo -e "\e[38;5;201m${cur}${BLANK}"
+        mv -i "${invdir}/${cur}" ./
+        echo -e "You dropped ${DROP_COLOR}$cur${BLANK}."
+      fi
+    fi
+    shift
   done
-fi
+}
+
+# ok the * needs to escaped on the command line (i.e. drop .hidden\*)
+# drop_list=$(find "${invdir}" -name "$*" )
+
+#drop_list=$(find "${invdir}" -name "$@" )
+#drop_list=$(ls "${invdir}/$*" )
+#echo $drop_list
+
+check_inv $@
+
+inventory
+
+# vim: ts=2 sw=2 expandtab
